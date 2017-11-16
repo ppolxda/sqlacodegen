@@ -294,7 +294,7 @@ class CodeGenerator(object):
 {models}"""
 
     def __init__(self, metadata, noindexes=False, noconstraints=False, nojoined=False, noinflect=False,
-                 noclasses=False, indentation='    ', model_separator='\n\n',
+                 noclasses=False, column_lower=False, indentation='    ', model_separator='\n\n',
                  ignored_tables=('alembic_version', 'migrate_version'), table_model=ModelTable, class_model=ModelClass,
                  template=None):
         super(CodeGenerator, self).__init__()
@@ -309,6 +309,7 @@ class CodeGenerator(object):
         self.ignored_tables = ignored_tables
         self.table_model = table_model
         self.class_model = class_model
+        self.column_lower = column_lower
         if template:
             self.template = template
         self.inflect_engine = self.create_inflect_engine()
@@ -366,6 +367,28 @@ class CodeGenerator(object):
                                     options = _re_enum_item.findall(items)
                                     table.c[colname].type = Enum(*options, native_enum=False)
                                 continue
+
+            if self.column_lower:
+                for constraint in table.constraints:
+                    for column in constraint.columns:
+                        column.name = column.name.lower()
+                        column.key = column.key.lower()
+
+                for primary in table.primary_key:
+                    primary.name = primary.name.lower()
+                    primary.key = primary.key.lower()
+
+                for foreign in table.foreign_keys:
+                    foreign.name = foreign.name.lower()
+
+                for col in table.columns:
+                    col.name = col.name.lower()
+                    col.key = col.key.lower()
+
+                for index in table.indexes:
+                    for col in index.columns:
+                        col.name = col.name.lower()
+                        col.key = col.key.lower()
 
             # Only form model classes for tables that have a primary key and are not association tables
             if noclasses or not table.primary_key or table.name in association_tables:
