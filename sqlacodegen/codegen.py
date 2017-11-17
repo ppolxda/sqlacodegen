@@ -317,8 +317,8 @@ class ModuleBase(object):
     def from_json(self, **kwargs):
         columns = self._columns_list()
         self.__dict__.update({key: val
-                             for key, val in kwargs.iteritems()
-                             if key in columns})"""
+                              for key, val in kwargs.iteritems()
+                              if key in columns})"""
 
     def __init__(self, metadata, noindexes=False, noconstraints=False, nojoined=False, noinflect=False,
                  noclasses=False, column_lower=False, indentation='    ', model_separator='\n\n',
