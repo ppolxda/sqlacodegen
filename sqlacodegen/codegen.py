@@ -293,6 +293,33 @@ class CodeGenerator(object):
 
 {models}"""
 
+    class_base_template = """\
+Base = declarative_base()
+metadata = Base.metadata
+
+
+class ModuleBase(object):
+
+    @classmethod
+    def _columns_list(cls):
+        cache_key = '__table_columns'
+        if not hasattr(cls, cache_key):
+            columns = inspect(cls).columns
+            cls.__table_columns = list(columns.keys())
+        return cls.__table_columns
+
+    def to_json(self):
+        columns = self._columns_list()
+        return {key: self.__dict__[key]
+                for key in self.__dict__
+                if key in columns and self.__dict__[key] is not None}
+
+    def from_json(self, **kwargs):
+        columns = self._columns_list()
+        self.__dict__.update({key: val
+                             for key, val in kwargs.iteritems()
+                             if key in columns})"""
+
     def __init__(self, metadata, noindexes=False, noconstraints=False, nojoined=False, noinflect=False,
                  noclasses=False, column_lower=False, indentation='    ', model_separator='\n\n',
                  ignored_tables=('alembic_version', 'migrate_version'), table_model=ModelTable, class_model=ModelClass,
@@ -411,6 +438,7 @@ class CodeGenerator(object):
             self.collector.add_literal_import('sqlalchemy', 'MetaData')
         else:
             self.collector.add_literal_import('sqlalchemy.ext.declarative', 'declarative_base')
+            self.collector.add_literal_import('sqlalchemy.inspection', 'inspect')
 
     def create_inflect_engine(self):
         if self.noinflect:
@@ -425,7 +453,8 @@ class CodeGenerator(object):
 
     def render_metadata_declarations(self):
         if 'sqlalchemy.ext.declarative' in self.collector:
-            return 'Base = declarative_base()\nmetadata = Base.metadata'
+            # return 'Base = declarative_base()\nmetadata = Base.metadata'
+            return self.class_base_template
         return 'metadata = MetaData()'
 
     @staticmethod
@@ -570,7 +599,10 @@ class CodeGenerator(object):
         return rendered.rstrip('\n,') + '\n)\n'
 
     def render_class(self, model):
-        rendered = 'class {0}({1}):\n'.format(model.name, model.parent_name)
+        if model.parent_name == 'Base' and 'sqlalchemy.ext.declarative' in self.collector:
+            rendered = 'class {0}({1}, ModuleBase):\n'.format(model.name, model.parent_name)
+        else:
+            rendered = 'class {0}({1}):\n'.format(model.name, model.parent_name)            
         rendered += '{0}__tablename__ = {1!r}\n'.format(self.indentation, model.table.name)
 
         # Render constraints and indexes as __table_args__
