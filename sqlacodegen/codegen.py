@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Contains the code generation logic and helper functions."""
 from __future__ import unicode_literals, division, print_function, absolute_import
 from collections import defaultdict
@@ -317,7 +318,7 @@ class ModuleBase(object):
     def from_json(self, **kwargs):
         columns = self._columns_list()
         self.__dict__.update({key: val
-                              for key, val in kwargs.iteritems()
+                              for key, val in kwargs.items()
                               if key in columns})"""
 
     def __init__(self, metadata, noindexes=False, noconstraints=False, nojoined=False, noinflect=False,
